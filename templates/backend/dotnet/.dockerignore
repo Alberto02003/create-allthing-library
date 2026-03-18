@@ -1,0 +1,9 @@
+bin/
+obj/
+.env
+.env.*
+tests/
+*.log
+.git/
+.gitignore
+README.md

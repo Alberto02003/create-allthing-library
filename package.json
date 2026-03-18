@@ -1,0 +1,19 @@
+{
+  "name": "create-allthing",
+  "version": "0.1.0",
+  "description": "CLI to scaffold full-stack projects with Docker and AI-agent-ready structure",
+  "type": "module",
+  "bin": {
+    "create-allthing": "bin/create-allthing.js"
+  },
+  "files": ["bin", "src", "templates"],
+  "keywords": ["scaffolding", "create", "fullstack", "docker", "cli"],
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "execa": "^8.0.1",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^9.2.15",
+    "ora": "^6.3.1"
+  }
+}

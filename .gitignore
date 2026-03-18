@@ -1,0 +1,23 @@
+node_modules/
+*.log
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Build
+dist/
+out/
+
+# Test artifacts
+coverage/
+
+# Accidental bat copy
+*.bat
