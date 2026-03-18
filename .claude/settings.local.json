@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(curl:*)",
-      "Bash(netstat -ano)"
+      "Bash(netstat -ano)",
+      "Bash(npx --version)",
+      "Bash(npx -y serve -l 8877)",
+      "Bash(gh auth:*)",
+      "Bash(git credential-manager:*)",
+      "Bash(git config:*)"
     ]
   }
 }
