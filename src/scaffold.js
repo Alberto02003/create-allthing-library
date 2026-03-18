@@ -160,11 +160,16 @@ async function generateSkillsLock(projectRoot) {
   const skillsLock = {
     version: '1',
     skills: [
-      { name: 'feature', version: 'latest' },
-      { name: 'fix', version: 'latest' },
-      { name: 'review', version: 'latest' },
-      { name: 'test', version: 'latest' },
-      { name: 'deploy', version: 'latest' },
+      { repo: 'anthropics/skills', skill: 'frontend-design' },
+      { repo: 'dammyjay93/interface-design', skill: 'interface-design' },
+      { repo: 'vercel-labs/agent-skills', skill: 'vercel-react-best-practices' },
+      { repo: 'obra/superpowers', skill: 'brainstorming' },
+      { repo: 'obra/superpowers', skill: 'systematic-debugging' },
+      { repo: 'composiohq/awesome-claude-skills', skill: 'changelog-generator' },
+      { repo: 'wshobson/agents', skill: 'api-design-principles' },
+      { repo: 'wshobson/agents', skill: 'error-handling-patterns' },
+      { repo: 'wshobson/agents', skill: 'postgresql-table-design' },
+      { repo: 'wshobson/agents', skill: 'prompt-engineering-patterns' },
     ],
     installedAt: new Date().toISOString(),
   };

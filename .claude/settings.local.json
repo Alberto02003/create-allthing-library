@@ -7,7 +7,10 @@
       "Bash(npx -y serve -l 8877)",
       "Bash(gh auth:*)",
       "Bash(git credential-manager:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(wc:*)",
+      "Bash(xargs ls:*)",
+      "Bash(npx skills:*)"
     ]
   }
 }
