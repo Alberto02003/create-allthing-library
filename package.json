@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "description": "CLI to scaffold full-stack projects with Docker and AI-agent-ready structure",
   "type": "module",
+  "license": "MIT",
+  "author": "Alberto Martín",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Alberto02003/create-allthing.git"
+  },
+  "homepage": "https://github.com/Alberto02003/create-allthing#readme",
+  "bugs": {
+    "url": "https://github.com/Alberto02003/create-allthing/issues"
+  },
   "bin": {
     "create-allthing": "bin/create-allthing.js"
   },
