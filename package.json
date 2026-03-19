@@ -7,7 +7,7 @@
   "author": "Alberto Martín",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Alberto02003/create-allthing.git"
+    "url": "git+https://github.com/Alberto02003/create-allthing.git"
   },
   "homepage": "https://github.com/Alberto02003/create-allthing#readme",
   "bugs": {
@@ -16,9 +16,21 @@
   "bin": {
     "create-allthing": "bin/create-allthing.js"
   },
-  "files": ["bin", "src", "templates"],
-  "keywords": ["scaffolding", "create", "fullstack", "docker", "cli"],
-  "engines": { "node": ">=18" },
+  "files": [
+    "bin",
+    "src",
+    "templates"
+  ],
+  "keywords": [
+    "scaffolding",
+    "create",
+    "fullstack",
+    "docker",
+    "cli"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "chalk": "^5.3.0",
     "execa": "^8.0.1",
