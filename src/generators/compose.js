@@ -1,3 +1,4 @@
+import { frontends } from '../registry/frontends.js';
 import { backends } from '../registry/backends.js';
 import { databases } from '../registry/databases.js';
 
@@ -22,18 +23,21 @@ function buildHealthcheck(test, interval = '30s', timeout = '5s', startPeriod = 
  * @param {{ backend: string, database: string }} options
  * @returns {string}
  */
-export function generateCompose({ backend, database }) {
+export function generateCompose({ frontend, backend, database }) {
+  const frontendMeta = frontends.find((f) => f.id === frontend);
   const backendMeta = backends.find((b) => b.id === backend);
   const dbMeta = databases.find((d) => d.id === database);
   const hasDb = database !== 'none' && dbMeta != null;
 
   // ── Frontend service ──────────────────────────────────────────────────────
+  const buildArgBlock = frontendMeta?.buildArg
+    ? `\n      args:\n        ${frontendMeta.buildArg}: \${${frontendMeta.buildArg}:-http://localhost:8080}`
+    : '';
+
   const frontendService = `  frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: \${VITE_API_URL:-http://localhost:8080}
+      dockerfile: Dockerfile${buildArgBlock}
     ports:
       - "3000:8080"
     networks:

@@ -1,3 +1,4 @@
+import { frontends } from '../registry/frontends.js';
 import { backends } from '../registry/backends.js';
 
 /**
@@ -6,16 +7,17 @@ import { backends } from '../registry/backends.js';
  * The workspace opens the root plus dedicated folders for frontend and backend,
  * and configures sensible per-folder settings and extensions.
  *
- * @param {{ projectName: string, backend: string }} options
+ * @param {{ projectName: string, frontend: string, backend: string }} options
  * @returns {string}  JSON string
  */
-export function generateWorkspace({ projectName, backend }) {
+export function generateWorkspace({ projectName, frontend, backend }) {
+  const frontendMeta = frontends.find((f) => f.id === frontend);
   const backendMeta = backends.find((b) => b.id === backend);
 
   // ── Folder entries ────────────────────────────────────────────────────────
   const folders = [
     { path: '.', name: `${projectName} (root)` },
-    { path: 'frontend', name: 'Frontend (React + Vite)' },
+    { path: 'frontend', name: frontendMeta?.workspaceLabel ?? 'Frontend' },
     { path: 'backend', name: `Backend (${backendMeta?.label ?? backend})` },
   ];
 
@@ -27,15 +29,26 @@ export function generateWorkspace({ projectName, backend }) {
     'files.insertFinalNewline': true,
   };
 
-  const frontendSettings = {
-    'editor.defaultFormatter': 'esbenp.prettier-vscode',
-    'editor.formatOnSave': true,
-    'typescript.tsdk': 'frontend/node_modules/typescript/lib',
-    '[javascript]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
-    '[javascriptreact]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
-    '[typescript]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
-    '[typescriptreact]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
-  };
+  let frontendSettings = {};
+  if (frontend === 'angular') {
+    frontendSettings = {
+      'editor.defaultFormatter': 'esbenp.prettier-vscode',
+      'editor.formatOnSave': true,
+      'typescript.tsdk': 'frontend/node_modules/typescript/lib',
+      '[typescript]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
+      '[html]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
+    };
+  } else {
+    frontendSettings = {
+      'editor.defaultFormatter': 'esbenp.prettier-vscode',
+      'editor.formatOnSave': true,
+      'typescript.tsdk': 'frontend/node_modules/typescript/lib',
+      '[javascript]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
+      '[javascriptreact]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
+      '[typescript]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
+      '[typescriptreact]': { 'editor.defaultFormatter': 'esbenp.prettier-vscode' },
+    };
+  }
 
   let backendSettings = {};
   if (backend === 'fastapi') {
@@ -60,11 +73,17 @@ export function generateWorkspace({ projectName, backend }) {
     'github.copilot',
   ];
 
-  const frontendExtensions = [
-    'esbenp.prettier-vscode',
-    'dbaeumer.vscode-eslint',
-    'dsznajder.es7-react-js-snippets',
-  ];
+  const frontendExtensions = frontend === 'angular'
+    ? [
+        'esbenp.prettier-vscode',
+        'angular.ng-template',
+        'dbaeumer.vscode-eslint',
+      ]
+    : [
+        'esbenp.prettier-vscode',
+        'dbaeumer.vscode-eslint',
+        'dsznajder.es7-react-js-snippets',
+      ];
 
   const dotnetExtensions = [
     'ms-dotnettools.csdevkit',

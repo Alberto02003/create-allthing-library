@@ -65,6 +65,12 @@ export async function runPrompts() {
     },
     {
       type: 'confirm',
+      name: 'jenkinsfile',
+      message: chalk.bold('Generate Jenkinsfile (CI/CD)?'),
+      default: true,
+    },
+    {
+      type: 'confirm',
       name: 'confirm',
       message: (ans) => {
         const name = sanitizeName(ans.rawProjectName);
@@ -77,6 +83,7 @@ export async function runPrompts() {
         console.log('    ' + chalk.gray('Frontend: ') + chalk.yellow(fe));
         console.log('    ' + chalk.gray('Backend:  ') + chalk.yellow(be));
         console.log('    ' + chalk.gray('Database: ') + chalk.yellow(db));
+        console.log('    ' + chalk.gray('Jenkins:  ') + chalk.yellow(ans.jenkinsfile ? 'Yes' : 'No'));
         console.log('');
         return chalk.bold('Create project?');
       },
@@ -92,6 +99,7 @@ export async function runPrompts() {
     frontend: answers.frontend,
     backend: answers.backend,
     database: answers.database,
+    jenkinsfile: answers.jenkinsfile,
     confirm: answers.confirm,
   };
 }

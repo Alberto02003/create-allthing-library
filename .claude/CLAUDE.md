@@ -48,9 +48,17 @@ No changes needed to prompts, scaffold, or generators.
 - **`src/registry/`** — Stack definitions with metadata (dirs, healthchecks, ports, images)
 - **`templates/`** — Static files (Dockerfiles, nginx.conf, sample code) copied into generated projects
 
+### Registry Entry Schema
+
+Each registry entry has: `id` (internal key matching template dir name), `label` (shown in prompts), and type-specific fields like `dirs`, `healthcheck` (with `.compose` and `.dockerfile` sub-fields), `image`, `defaultPort`. Generators read these fields to produce compose, env, and readme content.
+
 ### Scaffolding Pipeline (`src/scaffold.js`)
 
-Executes 12 sequential steps: create dirs → scaffold frontend → scaffold backend → scaffold database → generate compose → generate env → generate gitignore → generate workspace → generate readme → copy agents.md → generate skills-lock → install skills → git init. Each step has non-fatal error handling (warns and continues).
+Executes 12 internal steps (displayed to the user as 7 stages): create dirs → scaffold frontend → scaffold backend → scaffold database → generate compose → generate env → generate gitignore → generate workspace → generate readme → copy agents.md → generate skills-lock → install skills → git init. Each step has non-fatal error handling (warns and continues).
+
+### Skills Sync
+
+The skills list is duplicated in two places that must stay in sync: `src/runners/skills.js` (runtime install) and `generateSkillsLock()` in `src/scaffold.js` (lock file). When adding/removing a skill, update both.
 
 ## Conventions
 

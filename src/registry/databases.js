@@ -15,7 +15,7 @@
 export const databases = [
   {
     id: 'none',
-    label: 'Ninguna',
+    label: 'None',
   },
   {
     id: 'postgres',

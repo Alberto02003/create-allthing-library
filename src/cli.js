@@ -2,8 +2,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs-extra';
 import chalk from 'chalk';
+import inquirer from 'inquirer';
+import { frontends } from './registry/frontends.js';
+import { backends } from './registry/backends.js';
+import { databases } from './registry/databases.js';
 import { runPrompts } from './prompts.js';
 import { scaffold } from './scaffold.js';
+import { runSkillsManager } from './commands/skills-manager.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,18 +21,32 @@ function printBanner() {
   console.log('');
 }
 
+function printHelp() {
+  console.log('');
+  console.log(chalk.bold('  Usage:'));
+  console.log('    ' + chalk.cyan('create-allthing') + chalk.gray('                Main menu'));
+  console.log('    ' + chalk.cyan('create-allthing skills') + chalk.gray('         Apply skills to an existing project'));
+  console.log('    ' + chalk.cyan('create-allthing skills -l') + chalk.gray('      List current skill stack'));
+  console.log('    ' + chalk.cyan('create-allthing --help') + chalk.gray('         Show this help'));
+  console.log('');
+}
+
 function printSummary(projectName, options) {
   const cwd = process.cwd();
   const projectPath = path.join(cwd, projectName);
+
+  const feLabel = frontends.find((f) => f.id === options.frontend)?.label ?? options.frontend;
+  const beLabel = backends.find((b) => b.id === options.backend)?.label ?? options.backend;
+  const dbLabel = databases.find((d) => d.id === options.database)?.label ?? options.database;
 
   console.log('');
   console.log(chalk.bold.green('  ✔ Project created successfully!'));
   console.log('');
   console.log(chalk.bold('  Project:  ') + chalk.cyan(projectName));
   console.log(chalk.bold('  Path:     ') + chalk.gray(projectPath));
-  console.log(chalk.bold('  Frontend: ') + chalk.yellow(options.frontend));
-  console.log(chalk.bold('  Backend:  ') + chalk.yellow(options.backend));
-  console.log(chalk.bold('  Database: ') + chalk.yellow(options.database));
+  console.log(chalk.bold('  Frontend: ') + chalk.yellow(feLabel));
+  console.log(chalk.bold('  Backend:  ') + chalk.yellow(beLabel));
+  console.log(chalk.bold('  Database: ') + chalk.yellow(dbLabel));
   console.log('');
   console.log(chalk.bold('  Next steps:'));
   console.log('');
@@ -68,9 +87,10 @@ function printSummary(projectName, options) {
   console.log('');
 }
 
-async function main() {
-  printBanner();
-
+/**
+ * "Create project" flow — the original scaffold wizard.
+ */
+async function createProject() {
   let answers;
   try {
     answers = await runPrompts();
@@ -83,7 +103,7 @@ async function main() {
     process.exit(1);
   }
 
-  const { projectName, frontend, backend, database, confirm } = answers;
+  const { projectName, frontend, backend, database, jenkinsfile, confirm } = answers;
 
   if (!confirm) {
     console.log('\n' + chalk.yellow('  Cancelled. No files were created.'));
@@ -100,7 +120,7 @@ async function main() {
   }
 
   try {
-    await scaffold({ projectName, projectRoot, frontend, backend, database });
+    await scaffold({ projectName, projectRoot, frontend, backend, database, jenkinsfile });
     printSummary(projectName, { frontend, backend, database });
   } catch (err) {
     console.error(chalk.red('\n  Fatal error during scaffolding:'), err.message);
@@ -108,6 +128,45 @@ async function main() {
       console.error(err.stack);
     }
     process.exit(1);
+  }
+}
+
+async function main() {
+  // Handle --help flag
+  if (process.argv.includes('--help') || process.argv.includes('-h')) {
+    printBanner();
+    printHelp();
+    process.exit(0);
+  }
+
+  printBanner();
+
+  // Main menu loop — returns to menu after skills manager
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { mode } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'mode',
+        message: chalk.bold('What would you like to do?'),
+        choices: [
+          { name: 'Create project', value: 'create' },
+          { name: 'Skills Stack', value: 'skills' },
+          { name: 'Exit', value: 'exit' },
+        ],
+      },
+    ]);
+
+    if (mode === 'exit') {
+      console.log(chalk.gray('\n  Goodbye!\n'));
+      break;
+    } else if (mode === 'skills') {
+      await runSkillsManager();
+      console.log('');
+    } else {
+      await createProject();
+      break; // After creating a project, exit
+    }
   }
 }
 

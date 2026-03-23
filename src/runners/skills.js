@@ -3,40 +3,26 @@ import ora from 'ora';
 import { execa } from 'execa';
 
 /**
- * Skills to install into every scaffolded project.
- * Format: `npx skills add <repo> --skill <skill> -y`
- *
- * Each entry:
- *   repo  – GitHub owner/repo that hosts the skill
- *   skill – specific skill name inside that repo
- *   label – friendly description shown in the spinner
- */
-const SKILLS = [
-  { repo: 'anthropics/skills',              skill: 'frontend-design',            label: 'frontend-design            — production-grade UI design' },
-  { repo: 'dammyjay93/interface-design',    skill: 'interface-design',           label: 'interface-design           — UI/UX interface design' },
-  { repo: 'vercel-labs/agent-skills',       skill: 'vercel-react-best-practices', label: 'vercel-react-best-practices — React & Next.js performance' },
-  { repo: 'obra/superpowers',              skill: 'brainstorming',              label: 'brainstorming              — explore requirements before coding' },
-  { repo: 'obra/superpowers',              skill: 'systematic-debugging',       label: 'systematic-debugging       — diagnose & fix bugs' },
-  { repo: 'composiohq/awesome-claude-skills', skill: 'changelog-generator',     label: 'changelog-generator        — auto changelog from git commits' },
-  { repo: 'wshobson/agents',               skill: 'api-design-principles',      label: 'api-design-principles      — REST & GraphQL API design' },
-  { repo: 'wshobson/agents',               skill: 'error-handling-patterns',    label: 'error-handling-patterns    — robust error handling' },
-  { repo: 'wshobson/agents',               skill: 'postgresql-table-design',    label: 'postgresql-table-design    — PostgreSQL best practices' },
-  { repo: 'wshobson/agents',               skill: 'prompt-engineering-patterns', label: 'prompt-engineering-patterns — prompt engineering' },
-];
-
-/**
- * Install all registered skills using `npx skills add <repo> --skill <name> -y`.
+ * Install a list of skills using `npx skills add <repo> --skill <name> -y`.
  * Each skill gets its own ora spinner showing [N/total] progress.
  * Failures are non-fatal; a warning is printed and installation continues.
+ *
+ * @param {string} projectRoot — target project directory
+ * @param {Array<{ repo: string, skill: string, label: string }>} skills — skills to install
  */
-export async function installSkills(projectRoot) {
-  const total = SKILLS.length;
+export async function installSkills(projectRoot, skills) {
+  const total = skills.length;
+
+  if (total === 0) {
+    console.log(chalk.gray('  No skills to install'));
+    return;
+  }
 
   for (let i = 0; i < total; i++) {
-    const skill = SKILLS[i];
+    const skill = skills[i];
     const prefix = chalk.gray(`[${i + 1}/${total}]`);
     const spinner = ora({
-      text: `${prefix} Installing skill: ${chalk.cyan(skill.label)}`,
+      text: `${prefix} Installing skill: ${chalk.cyan(skill.label ?? skill.skill)}`,
       color: 'cyan',
     }).start();
 

@@ -1,17 +1,20 @@
+import { frontends } from '../registry/frontends.js';
 import { backends } from '../registry/backends.js';
 import { databases } from '../registry/databases.js';
 
 /**
  * Generate README.md content.
  *
- * @param {{ projectName: string, backend: string, database: string }} options
+ * @param {{ projectName: string, frontend: string, backend: string, database: string }} options
  * @returns {string}
  */
-export function generateReadme({ projectName, backend, database }) {
+export function generateReadme({ projectName, frontend, backend, database }) {
+  const frontendMeta = frontends.find((f) => f.id === frontend);
   const backendMeta = backends.find((b) => b.id === backend);
   const dbMeta = databases.find((d) => d.id === database);
   const hasDb = database !== 'none' && dbMeta != null;
 
+  const frontendLabel = frontendMeta?.label ?? frontend;
   const backendLabel = backendMeta?.label ?? backend;
   const dbLabel = dbMeta?.label ?? database;
   const testCmd = backendMeta?.readmeTest ?? 'cd backend && <run tests>';
@@ -39,7 +42,7 @@ export function generateReadme({ projectName, backend, database }) {
 
 | Layer    | Technology      |
 |----------|----------------|
-| Frontend | React (Vite)    |
+| Frontend | ${frontendLabel} |
 | Backend  | ${backendLabel} |
 | Database | ${dbLabel}      |
 | Runtime  | Docker Compose  |
@@ -67,9 +70,7 @@ ${dbSetupSection}
 ### Frontend
 
 \`\`\`bash
-cd frontend
-npm install
-npm run dev     # http://localhost:5173
+${frontendMeta?.readmeDev ?? 'cd frontend\nnpm install\nnpm run dev'}
 \`\`\`
 
 ### Backend
@@ -98,7 +99,7 @@ ${testCmd}
 
 | Variable | Description |
 |----------|-------------|
-| \`VITE_API_URL\` | Backend URL used by the frontend build |
+${frontendMeta?.buildArg ? `| \`${frontendMeta.buildArg}\` | Backend URL used by the frontend build |` : ''}
 ${dbEnvSection}
 
 ## Docker commands
@@ -124,7 +125,7 @@ docker compose up --build frontend
 
 \`\`\`
 ${projectName}/
-├── frontend/           React + Vite SPA
+├── frontend/           ${frontendLabel} SPA
 │   ├── src/
 │   ├── Dockerfile
 │   └── nginx.conf

@@ -10,7 +10,15 @@
       "Bash(git config:*)",
       "Bash(wc:*)",
       "Bash(xargs ls:*)",
-      "Bash(npx skills:*)"
+      "Bash(npx skills:*)",
+      "Bash(cd:*)",
+      "Bash(mv templates/frontend/Dockerfile templates/frontend/react-vite/Dockerfile)",
+      "Bash(mv templates/frontend/nginx.conf templates/frontend/react-vite/nginx.conf)",
+      "Bash(mv templates/frontend/.dockerignore templates/frontend/react-vite/.dockerignore)",
+      "Bash(node -e \"import\\(''./src/registry/frontends.js''\\).then\\(m => console.log\\(''frontends OK:'', m.frontends.map\\(f=>f.id\\)\\)\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(node bin/create-allthing.js skills -l)",
+      "Bash(npm prefix:*)"
     ]
   }
 }

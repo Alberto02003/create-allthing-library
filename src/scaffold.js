@@ -4,17 +4,21 @@ import fs from 'fs-extra';
 import chalk from 'chalk';
 import ora from 'ora';
 
+import { frontends } from './registry/frontends.js';
 import { backends } from './registry/backends.js';
 import { databases } from './registry/databases.js';
 import { runNpm } from './runners/npm.js';
+import { runAngular } from './runners/angular.js';
 import { runUv } from './runners/uv.js';
 import { runDotnet } from './runners/dotnet.js';
 import { runGit } from './runners/git.js';
 import { installSkills } from './runners/skills.js';
+import { loadUserSkillStack } from './config.js';
 import { generateCompose } from './generators/compose.js';
 import { generateEnv } from './generators/env.js';
 import { generateReadme } from './generators/readme.js';
 import { generateWorkspace } from './generators/workspace.js';
+import { generateJenkinsfile } from './generators/jenkinsfile.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
@@ -37,16 +41,24 @@ async function copyTemplate(templateSubPath, dest) {
 }
 
 /**
- * Scaffold the frontend (React + Vite).
+ * Scaffold the frontend based on registry selection.
  */
 async function scaffoldFrontend(projectRoot, frontendId) {
   console.log('\n' + chalk.bold.blue('  [1/7] Setting up frontend...'));
 
-  await runNpm(projectRoot);
+  const frontendMeta = frontends.find((f) => f.id === frontendId);
 
-  // Copy Dockerfile + nginx.conf + .dockerignore into frontend/
+  // Dispatch to the appropriate runner
+  if (frontendMeta?.runner === 'angular') {
+    await runAngular(projectRoot);
+  } else {
+    await runNpm(projectRoot);
+  }
+
+  // Copy Dockerfile + nginx.conf + .dockerignore from the framework-specific template
   const frontendDir = path.join(projectRoot, 'frontend');
-  await copyTemplate('frontend', frontendDir);
+  const templateDir = frontendMeta?.templateDir ?? 'react-vite';
+  await copyTemplate(path.join('frontend', templateDir), frontendDir);
 }
 
 /**
@@ -156,21 +168,10 @@ async function generateGitignore(projectRoot, backendId) {
 /**
  * Generate skills-lock.json — tracks installed CLI skills.
  */
-async function generateSkillsLock(projectRoot) {
+async function generateSkillsLock(projectRoot, skills) {
   const skillsLock = {
     version: '1',
-    skills: [
-      { repo: 'anthropics/skills', skill: 'frontend-design' },
-      { repo: 'dammyjay93/interface-design', skill: 'interface-design' },
-      { repo: 'vercel-labs/agent-skills', skill: 'vercel-react-best-practices' },
-      { repo: 'obra/superpowers', skill: 'brainstorming' },
-      { repo: 'obra/superpowers', skill: 'systematic-debugging' },
-      { repo: 'composiohq/awesome-claude-skills', skill: 'changelog-generator' },
-      { repo: 'wshobson/agents', skill: 'api-design-principles' },
-      { repo: 'wshobson/agents', skill: 'error-handling-patterns' },
-      { repo: 'wshobson/agents', skill: 'postgresql-table-design' },
-      { repo: 'wshobson/agents', skill: 'prompt-engineering-patterns' },
-    ],
+    skills: skills.map((s) => ({ repo: s.repo, skill: s.skill })),
     installedAt: new Date().toISOString(),
   };
   await fs.writeJson(path.join(projectRoot, '.claude', 'skills-lock.json'), skillsLock, {
@@ -215,7 +216,7 @@ Run \`npx skills list\` to see all registered skills for this project.
 /**
  * Main scaffold entry point.
  */
-export async function scaffold({ projectName, projectRoot, frontend, backend, database }) {
+export async function scaffold({ projectName, projectRoot, frontend, backend, database, jenkinsfile }) {
   // ── Step 0: Create root + base dirs ───────────────────────────────────────
   const spinner = ora({ text: 'Creating project structure...', color: 'cyan' }).start();
 
@@ -236,7 +237,10 @@ export async function scaffold({ projectName, projectRoot, frontend, backend, da
     await scaffoldFrontend(projectRoot, frontend);
   } catch (err) {
     console.warn(chalk.yellow(`  ⚠  Frontend setup failed: ${err.message}`));
-    console.warn(chalk.gray('     You can set it up manually with: npm create vite@latest frontend -- --template react'));
+    const hint = frontend === 'angular'
+      ? 'npx @angular/cli new frontend'
+      : 'npm create vite@latest frontend -- --template react';
+    console.warn(chalk.gray(`     You can set it up manually with: ${hint}`));
   }
 
   // ── Step 2: Backend ────────────────────────────────────────────────────────
@@ -257,7 +261,7 @@ export async function scaffold({ projectName, projectRoot, frontend, backend, da
   // ── Step 4: docker-compose.yml ────────────────────────────────────────────
   console.log('\n' + chalk.bold.blue('  [4/7] Generating Docker Compose...'));
   try {
-    const composeContent = generateCompose({ backend, database });
+    const composeContent = generateCompose({ frontend, backend, database });
     await fs.writeFile(path.join(projectRoot, 'docker-compose.yml'), composeContent, 'utf-8');
     console.log(chalk.green('  ✔ docker-compose.yml'));
   } catch (err) {
@@ -267,7 +271,7 @@ export async function scaffold({ projectName, projectRoot, frontend, backend, da
   // ── Step 5: .env files ────────────────────────────────────────────────────
   console.log('\n' + chalk.bold.blue('  [5/7] Generating environment files...'));
   try {
-    const { envExample, envLocal } = generateEnv({ database });
+    const { envExample, envLocal } = generateEnv({ frontend, database });
     await fs.writeFile(path.join(projectRoot, '.env.example'), envExample, 'utf-8');
     await fs.writeFile(path.join(projectRoot, '.env'), envLocal, 'utf-8');
     console.log(chalk.green('  ✔ .env.example + .env'));
@@ -286,7 +290,7 @@ export async function scaffold({ projectName, projectRoot, frontend, backend, da
   // ── Step 7: .code-workspace ───────────────────────────────────────────────
   console.log('\n' + chalk.bold.blue('  [6/7] Generating workspace & docs...'));
   try {
-    const workspaceContent = generateWorkspace({ projectName, backend });
+    const workspaceContent = generateWorkspace({ projectName, frontend, backend });
     await fs.writeFile(
       path.join(projectRoot, `${projectName}.code-workspace`),
       workspaceContent,
@@ -299,14 +303,25 @@ export async function scaffold({ projectName, projectRoot, frontend, backend, da
 
   // ── Step 8: README.md ─────────────────────────────────────────────────────
   try {
-    const readmeContent = generateReadme({ projectName, backend, database });
+    const readmeContent = generateReadme({ projectName, frontend, backend, database });
     await fs.writeFile(path.join(projectRoot, 'README.md'), readmeContent, 'utf-8');
     console.log(chalk.green('  ✔ README.md'));
   } catch (err) {
     console.warn(chalk.yellow(`  ⚠  README generation failed: ${err.message}`));
   }
 
-  // ── Step 9: agents.md ─────────────────────────────────────────────────────
+  // ── Step 9: Jenkinsfile ──────────────────────────────────────────────────
+  if (jenkinsfile) {
+    try {
+      const jenkinsContent = generateJenkinsfile({ frontend, backend, database });
+      await fs.writeFile(path.join(projectRoot, 'Jenkinsfile'), jenkinsContent, 'utf-8');
+      console.log(chalk.green('  ✔ Jenkinsfile'));
+    } catch (err) {
+      console.warn(chalk.yellow(`  ⚠  Jenkinsfile generation failed: ${err.message}`));
+    }
+  }
+
+  // ── Step 10: agents.md ────────────────────────────────────────────────────
   try {
     await copyAgentsMd(projectRoot);
     console.log(chalk.green('  ✔ docs/agents.md'));
@@ -314,21 +329,32 @@ export async function scaffold({ projectName, projectRoot, frontend, backend, da
     console.warn(chalk.yellow(`  ⚠  agents.md generation failed: ${err.message}`));
   }
 
-  // ── Step 10: skills-lock.json ─────────────────────────────────────────────
+  // ── Step 10: Load skill stack and generate skills-lock.json ──────────────
+  let userSkills;
   try {
-    await generateSkillsLock(projectRoot);
-    console.log(chalk.green('  ✔ .claude/skills-lock.json'));
-  } catch (err) {
-    console.warn(chalk.yellow(`  ⚠  skills-lock.json generation failed: ${err.message}`));
+    userSkills = await loadUserSkillStack();
+  } catch {
+    userSkills = [];
   }
 
-  // ── Step 11: Install skills ───────────────────────────────────────────────
-  console.log('\n' + chalk.bold.blue('  [7/7] Installing AI skills...'));
-  try {
-    await installSkills(projectRoot);
-  } catch (err) {
-    console.warn(chalk.yellow(`  ⚠  Skills install failed: ${err.message}`));
-    console.warn(chalk.gray('     You can install them later with: npx skills add <skill> -y'));
+  if (userSkills.length > 0) {
+    try {
+      await generateSkillsLock(projectRoot, userSkills);
+      console.log(chalk.green('  ✔ .claude/skills-lock.json'));
+    } catch (err) {
+      console.warn(chalk.yellow(`  ⚠  skills-lock.json generation failed: ${err.message}`));
+    }
+
+    // ── Step 11: Install skills ─────────────────────────────────────────────
+    console.log('\n' + chalk.bold.blue('  [7/7] Installing AI skills...'));
+    try {
+      await installSkills(projectRoot, userSkills);
+    } catch (err) {
+      console.warn(chalk.yellow(`  ⚠  Skills install failed: ${err.message}`));
+      console.warn(chalk.gray('     You can install them later with: npx skills add <skill> -y'));
+    }
+  } else {
+    console.log(chalk.gray('\n  Skipping AI skills (empty stack)'));
   }
 
   // ── Step 12: Git init ─────────────────────────────────────────────────────
