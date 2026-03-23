@@ -25,7 +25,10 @@
       "Bash(npx -y skills add anthropics/skills --skill frontend-design -y)",
       "Bash(node --check src/runners/skills.js)",
       "Bash(rm -rf C:/tmp/test-skills-dir)",
-      "Bash(mkdir C:/tmp/test-skills-dir)"
+      "Bash(mkdir C:/tmp/test-skills-dir)",
+      "Bash(mkdir -p packages/create-allthing-library)",
+      "Bash(cp -r \"../Create-Allthing/.\" \"packages/create-allthing-library/\")",
+      "Bash(rm -rf \"packages/create-allthing-library/.git\")"
     ]
   }
 }
