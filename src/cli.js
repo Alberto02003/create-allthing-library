@@ -9,6 +9,7 @@ import { databases } from './registry/databases.js';
 import { runPrompts } from './prompts.js';
 import { scaffold } from './scaffold.js';
 import { runSkillsManager } from './commands/skills-manager.js';
+import { applySkillsInteractive } from './commands/skills-apply.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -152,6 +153,7 @@ async function main() {
         choices: [
           { name: 'Create project', value: 'create' },
           { name: 'Skills Stack', value: 'skills' },
+          { name: 'Apply Skills to existing project', value: 'apply' },
           { name: 'Exit', value: 'exit' },
         ],
       },
@@ -162,6 +164,9 @@ async function main() {
       break;
     } else if (mode === 'skills') {
       await runSkillsManager();
+      console.log('');
+    } else if (mode === 'apply') {
+      await applySkillsInteractive();
       console.log('');
     } else {
       await createProject();

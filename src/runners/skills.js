@@ -1,6 +1,33 @@
+import path from 'path';
+import fs from 'fs-extra';
 import chalk from 'chalk';
 import ora from 'ora';
 import { execa } from 'execa';
+
+/**
+ * The external `npx skills add` tool installs skills for multiple agents:
+ *   .agents/skills/<name>/  — real files (universal store)
+ *   .claude/skills/<name>   — symlink (Claude Code)
+ *   .agent/skills/<name>    — symlink (Antigravity)
+ *
+ * We only need .claude/ and .agents/. This function removes the extra
+ * .agent/ directory and the root skills-lock.json the tool creates
+ * (create-allthing manages its own lock at .claude/skills-lock.json).
+ */
+async function cleanupExtraAgentDirs(projectRoot) {
+  const extraDirs = ['.agent'];
+  for (const dir of extraDirs) {
+    const fullPath = path.join(projectRoot, dir);
+    if (await fs.pathExists(fullPath)) {
+      await fs.remove(fullPath);
+    }
+  }
+  // The external tool also creates a root skills-lock.json — remove it
+  const externalLock = path.join(projectRoot, 'skills-lock.json');
+  if (await fs.pathExists(externalLock)) {
+    await fs.remove(externalLock);
+  }
+}
 
 /**
  * Install a list of skills using `npx skills add <repo> --skill <name> -y`.
@@ -43,4 +70,7 @@ export async function installSkills(projectRoot, skills) {
       );
     }
   }
+
+  // Clean up directories created by the external tool that we don't need
+  await cleanupExtraAgentDirs(projectRoot);
 }

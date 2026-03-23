@@ -102,9 +102,10 @@ async function stackInfo() {
 }
 
 /**
- * Main interactive flow: apply skill stack to existing project.
+ * Interactive apply-skills flow. Exported for use from the main menu.
+ * Returns normally (does not call process.exit) so the caller can continue.
  */
-async function applySkills() {
+export async function applySkillsInteractive() {
   const cwd = process.cwd();
 
   console.log('');
@@ -125,7 +126,7 @@ async function applySkills() {
     ]);
     if (!proceed) {
       console.log(chalk.yellow('\n  Cancelled.'));
-      process.exit(0);
+      return;
     }
   }
 
@@ -135,7 +136,7 @@ async function applySkills() {
   if (userSkills.length === 0) {
     console.log(chalk.yellow('  Your skill stack is empty.'));
     console.log(chalk.gray('  Run: create-allthing → Skills Stack to configure'));
-    process.exit(0);
+    return;
   }
 
   // Read existing skills-lock
@@ -173,14 +174,14 @@ async function applySkills() {
 
     if (action === 'cancel') {
       console.log(chalk.yellow('\n  Cancelled.'));
-      process.exit(0);
+      return;
     }
 
     const skillsToInstall = action === 'new' ? newSkills : userSkills;
 
     if (skillsToInstall.length === 0) {
       console.log(chalk.green('\n  ✔ All skills are already installed.'));
-      process.exit(0);
+      return;
     }
 
     console.log('');
@@ -199,7 +200,7 @@ async function applySkills() {
 
     if (!proceed) {
       console.log(chalk.yellow('\n  Cancelled.'));
-      process.exit(0);
+      return;
     }
 
     console.log('');
@@ -213,15 +214,16 @@ async function applySkills() {
   console.log('');
 }
 
-// ── Entry point ──────────────────────────────────────────────────────────
+// ── Entry point (CLI subcommand) ─────────────────────────────────────────
 const args = process.argv.slice(3); // skip: node, bin/create-allthing.js, 'skills'
 
 if (args.includes('--list') || args.includes('-l')) {
   listSkills();
 } else if (args.includes('--stack-info')) {
   stackInfo();
-} else {
-  applySkills().catch((err) => {
+} else if (process.argv[2] === 'skills') {
+  // Only run interactive flow when invoked as CLI subcommand
+  applySkillsInteractive().catch((err) => {
     if (err.name === 'ExitPromptError' || err.message?.includes('User force closed')) {
       console.log('\n' + chalk.yellow('  Cancelled.'));
       process.exit(0);

@@ -18,7 +18,14 @@
       "Bash(node -e \"import\\(''./src/registry/frontends.js''\\).then\\(m => console.log\\(''frontends OK:'', m.frontends.map\\(f=>f.id\\)\\)\\)\")",
       "Bash(node -e \":*)",
       "Bash(node bin/create-allthing.js skills -l)",
-      "Bash(npm prefix:*)"
+      "Bash(npm prefix:*)",
+      "Bash(node --check src/cli.js)",
+      "Bash(node --check src/commands/skills-manager.js)",
+      "Bash(node --check src/commands/skills-apply.js)",
+      "Bash(npx -y skills add anthropics/skills --skill frontend-design -y)",
+      "Bash(node --check src/runners/skills.js)",
+      "Bash(rm -rf C:/tmp/test-skills-dir)",
+      "Bash(mkdir C:/tmp/test-skills-dir)"
     ]
   }
 }

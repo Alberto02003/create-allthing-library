@@ -1,3 +1,5 @@
+.claude/
+
 node_modules/
 *.log
 .env
@@ -21,3 +23,4 @@ coverage/
 
 # Accidental bat copy
 *.bat
+

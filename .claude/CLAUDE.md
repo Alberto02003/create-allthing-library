@@ -29,11 +29,11 @@ There are no test, lint, or build commands — this is a pure ES module project 
 
 ### Entry Point & Flow
 
-`bin/create-allthing.js` → `src/cli.js` → `src/prompts.js` (gather input) → `src/scaffold.js` (12-step pipeline) → output summary.
+`bin/create-allthing.js` routes subcommands: `skills` → `src/commands/skills-apply.js`, everything else → `src/cli.js`. The main CLI shows a menu (Create project / Skills Stack / Exit). The create flow: `src/cli.js` → `src/prompts.js` (gather input) → `src/scaffold.js` (13-step pipeline) → output summary.
 
 ### Registry Pattern (Extensibility)
 
-Stack options are defined in `src/registry/` (frontends.js, backends.js, databases.js). Prompts, scaffold, and generators read from these registries automatically. To add a new stack option:
+Stack options are defined in `src/registry/` (frontends.js, backends.js, databases.js, skills.js). Prompts, scaffold, and generators read from these registries automatically. To add a new stack option:
 
 1. Add entry to the appropriate registry file in `src/registry/`
 2. Create templates in `templates/backend/<id>/` (or `frontend/`)
@@ -43,10 +43,12 @@ No changes needed to prompts, scaffold, or generators.
 
 ### Key Directories
 
-- **`src/generators/`** — Dynamic file generators (compose.js, env.js, readme.js, workspace.js) that produce config files based on user selections
-- **`src/runners/`** — Framework-specific setup logic (npm.js for React/Vite, uv.js for FastAPI, dotnet.js for .NET, git.js, skills.js)
-- **`src/registry/`** — Stack definitions with metadata (dirs, healthchecks, ports, images)
-- **`templates/`** — Static files (Dockerfiles, nginx.conf, sample code) copied into generated projects
+- **`src/generators/`** — Dynamic file generators (compose.js, env.js, readme.js, workspace.js, jenkinsfile.js) that produce config files based on user selections
+- **`src/runners/`** — Framework-specific setup logic (npm.js for React/Vite, angular.js, uv.js for FastAPI, dotnet.js for .NET, git.js, skills.js)
+- **`src/commands/`** — Subcommands: skills-apply.js (CLI `skills` subcommand), skills-manager.js (interactive stack editor from main menu)
+- **`src/registry/`** — Stack definitions with metadata (dirs, healthchecks, ports, images) + default skills list
+- **`src/config.js`** — Global user config at `~/.create-allthing/` (persists skill stack across projects)
+- **`templates/`** — Static files (Dockerfiles, nginx.conf, sample code) copied into generated projects. Template dir names must match registry `id` values
 
 ### Registry Entry Schema
 
@@ -54,11 +56,11 @@ Each registry entry has: `id` (internal key matching template dir name), `label`
 
 ### Scaffolding Pipeline (`src/scaffold.js`)
 
-Executes 12 internal steps (displayed to the user as 7 stages): create dirs → scaffold frontend → scaffold backend → scaffold database → generate compose → generate env → generate gitignore → generate workspace → generate readme → copy agents.md → generate skills-lock → install skills → git init. Each step has non-fatal error handling (warns and continues).
+Executes 13 internal steps (displayed to the user as 7 stages): create dirs → scaffold frontend → scaffold backend → scaffold database → generate compose → generate env → generate gitignore → generate workspace → generate readme → generate Jenkinsfile (if selected) → copy agents.md → generate skills-lock + install skills → git init. Each step has non-fatal error handling (warns and continues).
 
-### Skills Sync
+### Skills System
 
-The skills list is duplicated in two places that must stay in sync: `src/runners/skills.js` (runtime install) and `generateSkillsLock()` in `src/scaffold.js` (lock file). When adding/removing a skill, update both.
+Default skills are defined in `src/registry/skills.js`. The user's custom stack is persisted at `~/.create-allthing/skills-stack.json` (managed by `src/config.js`). During scaffolding, `loadUserSkillStack()` reads the user's stack (or defaults), writes `skills-lock.json`, and calls `installSkills()` from `src/runners/skills.js`. The `create-allthing skills` subcommand can apply the stack to existing projects.
 
 ## Conventions
 

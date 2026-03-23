@@ -1,5 +1,8 @@
+import path from 'path';
+import fs from 'fs-extra';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import ora from 'ora';
 import { execa } from 'execa';
 import { loadUserSkillStack, saveUserSkillStack } from '../config.js';
 import { defaultSkills } from '../registry/skills.js';
@@ -14,6 +17,47 @@ function printStack(skills) {
   }
   for (const s of skills) {
     console.log(`    ${chalk.cyan(s.skill)} ${chalk.gray('←')} ${chalk.gray(s.repo)}`);
+  }
+}
+
+/**
+ * Check if find-skills is already installed in the current directory
+ * by looking for it inside .claude/skills/.
+ */
+async function isFindSkillsInstalled() {
+  const skillDir = path.join(process.cwd(), '.claude', 'skills');
+  try {
+    if (!(await fs.pathExists(skillDir))) return false;
+    const entries = await fs.readdir(skillDir);
+    return entries.some((e) => e.includes('find-skills'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Verify that a skill exists in a GitHub repo by running a dry-run install.
+ * Returns true if the skill is valid, false otherwise.
+ */
+async function verifySkillExists(repo, skill) {
+  const spinner = ora({
+    text: `Verifying skill ${chalk.cyan(skill)} in ${chalk.gray(repo)}...`,
+    color: 'cyan',
+  }).start();
+
+  try {
+    await execa('npx', ['skills', 'add', repo, '--skill', skill, '-y'], {
+      stdio: 'pipe',
+      env: { ...process.env, npm_config_yes: 'true' },
+      timeout: 30_000,
+    });
+    spinner.succeed(`Skill ${chalk.cyan(skill)} verified and installed successfully`);
+    return true;
+  } catch (err) {
+    spinner.fail(
+      `Could not verify skill ${chalk.cyan(skill)}: ${err.shortMessage ?? err.message}`,
+    );
+    return false;
   }
 }
 
@@ -53,20 +97,38 @@ export async function runSkillsManager() {
     if (action === 'add') {
       console.log('');
       console.log(chalk.gray('  Opening skills finder...'));
-      console.log(chalk.gray('  (This will run npx skills to browse available skills)'));
+
+      // Check if find-skills is already installed before installing it again
+      const alreadyInstalled = await isFindSkillsInstalled();
+
+      if (alreadyInstalled) {
+        console.log(chalk.gray('  find-skills is already installed, skipping installation.'));
+      } else {
+        console.log(chalk.gray('  (This will run npx skills to browse available skills)'));
+      }
+
       console.log('');
 
       try {
-        // Run find-skills interactively so the user can browse and select
-        await execa(
-          'npx',
-          ['skills', 'add', 'https://github.com/vercel-labs/skills', '--skill', 'find-skills'],
-          {
+        if (alreadyInstalled) {
+          // Run find-skills directly without reinstalling
+          await execa('npx', ['skills', 'run', 'find-skills'], {
             stdio: 'inherit',
             env: { ...process.env, npm_config_yes: 'true' },
             timeout: 120_000,
-          },
-        );
+          });
+        } else {
+          // Install and run find-skills
+          await execa(
+            'npx',
+            ['skills', 'add', 'https://github.com/vercel-labs/skills', '--skill', 'find-skills'],
+            {
+              stdio: 'inherit',
+              env: { ...process.env, npm_config_yes: 'true' },
+              timeout: 120_000,
+            },
+          );
+        }
       } catch (err) {
         console.warn(chalk.yellow(`  ⚠  find-skills failed: ${err.message}`));
       }
@@ -109,9 +171,30 @@ export async function runSkillsManager() {
         if (exists) {
           console.log(chalk.yellow(`  ⚠  ${answers.skill} already exists in your stack`));
         } else {
-          skills.push({ repo: answers.repo, skill: answers.skill, label: answers.label });
-          changed = true;
-          console.log(chalk.green(`  ✔ ${answers.skill} added to stack`));
+          // Verify the skill actually exists before adding
+          console.log('');
+          const isValid = await verifySkillExists(answers.repo, answers.skill);
+
+          if (isValid) {
+            skills.push({ repo: answers.repo, skill: answers.skill, label: answers.label });
+            changed = true;
+            console.log(chalk.green(`  ✔ ${answers.skill} added to stack`));
+          } else {
+            console.log(chalk.yellow(`  ⚠  Skill was not added to stack (could not verify)`));
+            const { addAnyway } = await inquirer.prompt([
+              {
+                type: 'confirm',
+                name: 'addAnyway',
+                message: 'Add it anyway?',
+                default: false,
+              },
+            ]);
+            if (addAnyway) {
+              skills.push({ repo: answers.repo, skill: answers.skill, label: answers.label });
+              changed = true;
+              console.log(chalk.green(`  ✔ ${answers.skill} added to stack`));
+            }
+          }
         }
       }
     } else if (action === 'remove') {
