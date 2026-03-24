@@ -204,6 +204,23 @@ create-allthing
 
 ---
 
+## Landing Page
+
+The project has a companion landing page that showcases all features and available stacks:
+
+- **Repository**: [create-allthing-landing](https://github.com/Alberto02003/create-allthing-landing)
+- Static site (HTML + CSS + vanilla JS), bilingual (ES/EN), zero dependencies
+
+When adding new stacks or features to the CLI, update the landing page to keep it in sync (see `index.html` and `js/i18n.js`).
+
+---
+
+## Roadmap
+
+See [`docs/roadmap.md`](docs/roadmap.md) for planned improvements and feature proposals.
+
+---
+
 ## License
 
 MIT
